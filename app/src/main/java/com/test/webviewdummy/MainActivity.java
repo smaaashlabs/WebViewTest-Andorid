@@ -1,9 +1,15 @@
 package com.test.webviewdummy;
 
 import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
+import android.net.Uri;
+import android.os.Build;
+import android.support.customtabs.CustomTabsIntent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.webkit.PermissionRequest;
+import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
@@ -16,23 +22,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        WebView webView = (WebView) findViewById(R.id.webview);
-        webView.loadUrl("https://dancesonywebview.s3.ap-south-1.amazonaws.com/index.html?place=asdf&username=asdf&user_id=user1");
-        WebSettings webSettings = webView.getSettings();
-        webSettings.setJavaScriptEnabled(true);
-        webView.setWebViewClient(new WebViewClient(){
-            @Override
-            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                super.onReceivedError(view, request, error);
-                Log.d("onReceivedError",error.toString());
-            }
-        });
-
-        webSettings.setAllowContentAccess(true);
-        webSettings.setAllowFileAccess(true);
-        webSettings.setDatabaseEnabled(true);
-        webSettings.setDomStorageEnabled(true);
-        webSettings.setPluginState(WebSettings.PluginState.ON);
+        String url = "https://4e48785e.ngrok.io/camera.html";
+        CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder();
+        CustomTabsIntent customTabsIntent = builder.build();
+        customTabsIntent.launchUrl(this, Uri.parse(url));
 
 
     }
