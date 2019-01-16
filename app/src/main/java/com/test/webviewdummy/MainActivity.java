@@ -2,23 +2,14 @@ package com.test.webviewdummy;
 
 import android.Manifest;
 import android.app.DownloadManager;
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.content.Context;
-import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.support.annotation.Nullable;
-import android.support.customtabs.CustomTabsIntent;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Base64;
 import android.util.Log;
@@ -38,13 +29,21 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements MyClient.WebBrowserListener {
+/***
+ * Android Activity File
+ */
+public class MainActivity extends AppCompatActivity implements MyClient.MyWebListeners {
     private static final int MULTIPLE_PERMISSIONS = 111;
     private final int CHROME_CUSTOM_TAB_REQUEST_CODE = 100;
+    /**
+     * Array of Permission
+     */
     String[] permissions = new String[]{
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
             Manifest.permission.CAMERA};
-    //    String url = "https://s3.ap-south-1.amazonaws.com/sony-dance-poc-test/index.html";
+    /**
+     * @url Staging Video WebView
+     */
     String url = "https://s3.ap-south-1.amazonaws.com/sony-dance-poc-test/index.html";
 
 
@@ -52,10 +51,9 @@ public class MainActivity extends AppCompatActivity implements MyClient.WebBrows
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-//        String url = "https://superdancer.smaaash.com";
-        //setWeb(url);
-//        String url = "https://4e48785e.ngrok.io/camera.html";
-//        launchCustomTabs(url);
+        /**
+         * Check for permission and then run @loadurl(url)
+         */
         if (checkPermissions()) {
             loadUrl(url);
         }
@@ -63,20 +61,6 @@ public class MainActivity extends AppCompatActivity implements MyClient.WebBrows
 
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == CHROME_CUSTOM_TAB_REQUEST_CODE) {
-            finish();
-        }
-    }
-
-    public void launchCustomTabs(String url) {
-        CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder();
-        CustomTabsIntent customTabsIntent = builder.build();
-        customTabsIntent.intent.setData(Uri.parse(url));
-        startActivityForResult(customTabsIntent.intent, CHROME_CUSTOM_TAB_REQUEST_CODE);
-    }
 
     @Override
     public void onPageFinished(WebView webView, String str) {
@@ -94,6 +78,11 @@ public class MainActivity extends AppCompatActivity implements MyClient.WebBrows
 
     }
 
+    /**
+     * this returns the true/value for permission
+     *
+     * @return true/false
+     */
     private boolean checkPermissions() {
         int result;
         List<String> listPermissionsNeeded = new ArrayList<>();
@@ -110,6 +99,11 @@ public class MainActivity extends AppCompatActivity implements MyClient.WebBrows
         return true;
     }
 
+    /**
+     * @param requestCode
+     * @param permissions
+     * @param grantResults
+     */
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         switch (requestCode) {
@@ -117,10 +111,8 @@ public class MainActivity extends AppCompatActivity implements MyClient.WebBrows
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     loadUrl(url);
                 } else {
-
-//permissions missing
+                    //permissions missing
                     checkPermissions();
-
                 }
                 return;
             }
@@ -128,6 +120,10 @@ public class MainActivity extends AppCompatActivity implements MyClient.WebBrows
 
     }
 
+    /***
+     * This is the LoadURL method which gets called after permission gets called
+     * @param url
+     */
     public void loadUrl(String url) {
         WebView webview_view = findViewById(R.id.webview_view);
         webview_view.setWebViewClient(new MyClient());
@@ -150,10 +146,9 @@ public class MainActivity extends AppCompatActivity implements MyClient.WebBrows
 
 
                 if (url.startsWith("data:")) {  //when url is base64 encoded data
-                    String path = createAndSaveFileFromBase64Url(url);
+                    createAndSaveFileFromBase64Url(url);
                     return;
                 }
-
                 DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
                 request.setMimeType(mimeType);
                 String cookies = CookieManager.getInstance().getCookie(url);
@@ -167,37 +162,37 @@ public class MainActivity extends AppCompatActivity implements MyClient.WebBrows
                 request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, filename);
                 DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
                 dm.enqueue(request);
-                Toast.makeText(getApplicationContext(), "Downloading", Toast.LENGTH_LONG).show();
 
             }
         });
-        webview_view.setWebChromeClient(new
-
-                                                WebChromeClient() {
-
-                                                    @Override
-                                                    public void onPermissionRequest(final PermissionRequest request) {
-                                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                                                            request.grant(request.getResources());
-                                                        }
-                                                    }
-
-                                                });
+        webview_view.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onPermissionRequest(final PermissionRequest request) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    request.grant(request.getResources());
+                }
+            }
+        });
         if (Build.VERSION.SDK_INT >= 17) {
             webview_view.getSettings().setMediaPlaybackRequiresUserGesture(false);
         }
         webview_view.loadUrl(url);
     }
 
+    /***
+     * createAndSaveFileFromBase64Url gets called when download-manager certificate downloader is clicked
+     * @param url
+     * @return
+     */
     public String createAndSaveFileFromBase64Url(String url) {
         File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
         String filetype = url.substring(url.indexOf("/") + 1, url.indexOf(";"));
         String filename = System.currentTimeMillis() + "." + filetype;
         File file = new File(path, filename);
         try {
-            if(!path.exists())
+            if (!path.exists())
                 path.mkdirs();
-            if(!file.exists())
+            if (!file.exists())
                 file.createNewFile();
 
             String base64EncodedString = url.substring(url.indexOf(",") + 1);
@@ -206,7 +201,6 @@ public class MainActivity extends AppCompatActivity implements MyClient.WebBrows
             os.write(decodedBytes);
             os.close();
 
-            //Tell the media scanner about the new file so that it is immediately available to the user.
             MediaScannerConnection.scanFile(this,
                     new String[]{file.toString()}, null,
                     new MediaScannerConnection.OnScanCompletedListener() {
@@ -215,7 +209,7 @@ public class MainActivity extends AppCompatActivity implements MyClient.WebBrows
                             Log.i("ExternalStorage", "-> uri=" + uri);
                         }
                     });
- Toast.makeText(getApplicationContext(), "Download Done", Toast.LENGTH_LONG).show();
+            Toast.makeText(getApplicationContext(), "Certificate Saved in Gallery.", Toast.LENGTH_LONG).show();
 
         } catch (IOException e) {
             Log.d("ExternalStorage", "Error writing " + file, e);
